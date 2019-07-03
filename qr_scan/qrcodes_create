@@ -1,0 +1,10 @@
+import qrcode
+
+qr = qrcode.QRCode()
+data = raw_input("Input text: ")
+
+qr.add_data(data)
+qr.make()
+
+img = qr.make_image()
+img.save(raw_input("Input image name: "))
