@@ -23,7 +23,7 @@ def main():
     test_time = 120
 
     cap = cv2.VideoCapture(0)
-    time.wait(2)
+    time.sleep(2)
     flag, img = cap.read()
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -38,9 +38,10 @@ def main():
         orig_video.write(img)
         if (flag):
             qr_codes = detect_qr.get_qr_codes(img)
-            centers, polygons, texts = detect_qr.parse_decoded_qrs(qr_codes)
-            result_image = detect_qr.draw_qr_contour(img, centers, polygons, texts, landing_comparisson)
-            result_video.write(result_image)
+            if (qr_codes):
+                centers, polygons, texts = detect_qr.parse_decoded_qrs(qr_codes)
+                result_image = detect_qr.draw_qr_contour(img, centers, polygons, texts, landing_comparisson)
+                result_video.write(result_image)
         else:
             result_video.write(img)
 
