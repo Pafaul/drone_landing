@@ -4,8 +4,10 @@ from __future__ import division
 from __future__ import print_function
 
 import time
-
+import sys
+sys.path.append('../lib/')
 import drone_lib
+import arg_lib
 
 
 def test_sensors(vehicle):
@@ -21,12 +23,14 @@ def test_sensors(vehicle):
 
     alts = list();
     attitudes = list();
+    
+    print('Calculating mean values and dispersion...')
 
     for test in range(test_num):
-        alts.append(vehicle.location.global_frame.alt)
-        time.wait(0.1)
+        alts.append(vehicle.location.global_relative_frame.alt)
+        time.sleep(0.1)
         attitudes.append(vehicle.attitude)
-        time.wait(0.1)
+        time.sleep(0.1)
 
     mean = [0] * 4;
     dispersion = [0] * 4;
@@ -50,6 +54,8 @@ def test_sensors(vehicle):
         dispersion[3] += (att.yaw - mean[3])**2
 
     dispersion = [d/(test_num-1) for d in dispersion]
+    
+    print('Calculation finished...')
 
     return [mean, dispersion]
 
@@ -59,22 +65,31 @@ def main():
     статистических параметров датчиков высоты и углов
     :return:
     '''
-    connection_string = '/dev/ttyAMA0'
-    baud_rate         = 57600
+    parser = arg_lib.create_arg_parser_drone()
+    args = parser.parse_args()
+    device = args.device
+    baud_rate = args.baud
+    
+    print('Trying to connect to vehicle')
+    vehicle = drone_lib.connect(device, baud_rate)
+    if (vehicle):
+        print('Connection successful. Starting sensors test.')
+        mean, dispersion = test_sensors(vehicle)
 
-    vehicle = drone_lib.startup(connection_string, baud_rate)
-    mean, dispersion = test_sensors(vehicle)
+        if __name__ == '__main__':
+            print('Mean values of:')
+            print('altitude: %f' % (mean[0]))
+            print('roll: %f' % (mean[1]))
+            print('pitch: %f' % (mean[2]))
+            print('yaw: %f' % (mean[3]))
 
-    if __name__ == '__main__':
-        print('mean altitude: %f' % (mean[0]))
-        print('mean roll: %f' % (mean[1]))
-        print('mean pitch: %f' % (mean[2]))
-        print('mean yaw: %f' % (mean[3]))
-
-        print('dispersion altitude: %f' % (dispersion[0]))
-        print('dispersion roll: %f' % (dispersion[1]))
-        print('dispersion pitch: %f' % (dispersion[2]))
-        print('dispersion yaw: %f' % (dispersion[3]))
+            print('Standart deviation of:')
+            print('altitude: %f' % (dispersion[0]**0.5))
+            print('roll: %f' % (dispersion[1]**0.5))
+            print('pitch: %f' % (dispersion[2]**0.5))
+            print('yaw: %f' % (dispersion[3]**0.5))
+    else:
+        print('Cannot connect to vehicle. Test Failed.')
 
     vehicle.close()
 

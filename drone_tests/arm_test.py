@@ -2,10 +2,11 @@
 from __future__ import print_function
 
 import sys
+sys.path.append('../lib/')
 import time
 
 import drone_lib
-
+import arg_lib
 
 def check_arm(vehicle):
     '''
@@ -54,18 +55,22 @@ def check_thrust(vehicle):
 
 
 def main():
-    connection_string = '/dev/ttyAMA0'
-    baud_rate         = 57600
-    tests             = list()
-    avaivalble_tests  = ['arm', 'thrust']
+    
+    parser = arg_lib.create_arg_parser_drone()
+    args = parser.parse_args()
+    
+    device           = args.device
+    baud_rate        = args.baud
+    tests            = args.tests
+    avaivalble_tests = ['arm', 'thrust']
 
-    vehicle = drone_lib.connect(connection_string, baud_rate)
+    vehicle = drone_lib.connect(device, baud_rate)
     if (vehicle):
         print('Connection successful!')
-
-        for action in sys.argv[1:]:
-            if (action in avaivalble_tests) and not (action in tests):
-                tests.append(action)
+        
+        for test in tests:
+            if (test not in available_tests):
+                tests.remove(test)
 
         for test in tests:
             if (test == 'arm'):

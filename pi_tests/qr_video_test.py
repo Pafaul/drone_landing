@@ -3,10 +3,11 @@
 from __future__ import print_function
 
 import time
-
 import cv2
-
+import sys
+sys.path.append('../lib/')
 import detect_qr
+import arg_lib
 
 
 def landing_comparisson(text):
@@ -19,19 +20,31 @@ def landing_comparisson(text):
         return False
 
 def main():
+    
+    print("QR VIDEO TEST")
+    print("Parsing arguments...")
+    
+    parser = arg_lib.create_arg_parser_video()
+    
+    args = parser.parse_args()
 
-    test_time = 120
+    test_time = args.time
 
-    cap = cv2.VideoCapture(0)
+    cap       = cv2.VideoCapture(args.source)
     time.sleep(2)
+    
     flag, img = cap.read()
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    
+    print("Video writers created")
 
-    result_video = cv2.VideoWriter('result.avi', fourcc, 12, (img.shape[1::-1]))
-    orig_video = cv2.VideoWriter('orig.avi', fourcc, 12, (img.shape[1::-1]))
+    result_video = cv2.VideoWriter(args.result, fourcc, args.fps, (img.shape[1::-1]))
+    orig_video = cv2.VideoWriter(args.orig, fourcc, args.fps, (img.shape[1::-1]))
 
     start_time = time.time()
+    
+    print("Starting qr test")
 
     while ( time.time() - start_time < test_time ) and (cap.isOpened()):
         flag, img = cap.read()
@@ -42,12 +55,14 @@ def main():
                 centers, polygons, texts = detect_qr.parse_decoded_qrs(qr_codes)
                 result_image = detect_qr.draw_qr_contour(img, centers, polygons, texts, landing_comparisson)
                 result_video.write(result_image)
-        else:
-            result_video.write(img)
-
+            else:
+                result_video.write(img)
+    
+    print("Finishing QR test...")
+    print("Writing videos to SD")
     orig_video.release()
     result_video.release()
     cap.release()
-
+    print("QR test finished")
 if ( __name__ == '__main__' ):
     main()
