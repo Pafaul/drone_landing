@@ -17,7 +17,24 @@ def create_arg_parser_video():
     parser.add_argument("-f", "--fps", type = int, nargs='?', const = 12, help = "Videos FPS")
     parser.add_argument("-t", "--time", type = int, nargs='?', const = 120, help = "Test time duration")
     parser.add_argument("-s", "--source", type = int, nargs='?', const = 0, help = "Video source code number")
+    parser.add_argument("-a", "--angle", type = int, nargs = '?', const = 60, help = "Video camera viewing angle")
     
+    return parser
+
+def create_arg_parser_main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-b", "--baud", type=int, nargs='?', const=57600,
+                        help="connection baud rate (example: 9600, 57600, ...)")
+    parser.add_argument("-d", "--device", type=str, nargs='?', const='/dev/ttyACM0',
+                        help="device that flight controller is connected to (example: /dev/ttyAMA0, /dev/ttyACM0, /dev/ttyS0, ...)")
+    parser.add_argument("-o", "--orig", type=str, nargs='?', const='orig.avi',
+                        help="Original video name (with no modifications)")
+    parser.add_argument("-r", "--result", type=str, nargs='?', const='result.avi',
+                        help="Result video name (with modifications)")
+    parser.add_argument("-f", "--fps", type=int, nargs='?', const=12, help="Videos FPS")
+    parser.add_argument("-s", "--source", type=int, nargs='?', const=0, help="Video source code number")
+    parser.add_argument("-a", "--angle", type=int, nargs='?', const=60, help="Video camera viewing angle")
+
     return parser
 
 if (__name__ == "__main__"):
