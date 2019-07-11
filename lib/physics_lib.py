@@ -37,6 +37,10 @@ def calculate_angles(height, point, camera_angle, resolution):
 
     return angles
 
+def calculate_distance_NEU_meters(distance, location):
+    #TODO: сделать перевод из пиксельных координат в NED/NEU
+    return distance
+
 
 
 

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import time
 import dronekit
-from math import cos, sin
+from pymavlink import mavutil
+from math import cos, sin, pi
 
 def connect(device, baud_rate):
     '''
@@ -18,7 +19,7 @@ def arm_vehicle(vehicle):
 
     while not vehicle.is_armable:
         print('Waiting for vehicle to initialize')
-        time.sleep(5)
+        time.sleep(1)
 
     print('Arming')
 
@@ -26,7 +27,7 @@ def arm_vehicle(vehicle):
 
     for i in range(3):
         print('Waiting for arming')
-        time.sleep(5)
+        time.sleep(1)
         if (vehicle.armed):
             break
 
@@ -35,7 +36,23 @@ def arm_vehicle(vehicle):
     else:
         return False
 
+def px4_calc_location_lat_lon_meters(original_location, dNorth = 0, dEast = 0, alt = 0):
+    earth_radius = 6378137.0
+    dLat = dNorth/earth_radius
+    dLon = dEast/(earth_radius*cos(pi*original_location.lat/180))
 
+    new_lat = original_location.lat + (dLat * 180/pi)
+    new_lon = original_location.lon + (dLon * 180/pi)
+
+    return dronekit.LocationGlobal(new_lat, new_lon, original_location.alt + alt)
+
+def px4_control(vehicle, command, dNorth = 0, dEast = 0, alt = 0):
+    location = vehicle.location.global_reltive_frame
+    move = px4_calc_location_lat_lon_meters(location, dNorth, dEast, alt)
+    cmd = dronekit.Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                           command,
+                           0, 1, 0, 0, 0, 0, move.lat, move.lon, move.alt)
+    vehicle.commands.add(cmd)
 
 def to_quaternion(angles=[0,0,0]):
     return [
