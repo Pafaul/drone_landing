@@ -1,80 +1,81 @@
 # -*- coding: utf-8 -*-
-import time
-import dronekit
+from time import time, sleep
+from dronekit import connect, VehicleMode
 from pymavlink import mavutil
 from math import cos, sin, pi
+#connect, arm_vehicle
 
 def connect(device, baud_rate):
-    '''
-    Осуществляет подключение к дрону
-    :param device: устройство, к которому необходимо подключиться, например: /dev/ttyAMA0
-    :param baud_rate: скорость подключения, например: 57600
-    :return:
-    '''
-    vehicle = dronekit.connect(device, baud = baud_rate, wait_ready=True)
-    vehicle.mode = dronekit.VehicleMode("GUIDED")
+    #установка соединения с дроном
+    vehicle = None
+    if (baud_rate == 0):
+        vehicle = connect(device, wait_ready=True)
+    else:
+        vehicle = connect(device, baud=baud_rate, wait_ready=True)
+
     return vehicle
 
-def arm_vehicle(vehicle):
+def vehicle_arm(vehicle):
+    #заармить дрон
+    while( not vehicle.is_armable):
+        sleep(1)
 
-    while not vehicle.is_armable:
-        print('Waiting for vehicle to initialize')
-        time.sleep(1)
-
-    print('Arming')
+    vehicle.mode = VehicleMode('GUIDED_NOGPS')
 
     vehicle.arm()
 
-    for i in range(3):
-        print('Waiting for arming')
-        time.sleep(1)
-        if (vehicle.armed):
+    return vehicle.armed
+
+def take_off(vehicle, alt):
+    #взлёт на какую-либо высоту
+    thrust = 0.6
+    while (True):
+        cur_alt = vehicle.global_relative_frame.alt
+        if (cur_alt >= alt):
             break
+        else:
+            set_attitude(thrust=thrust)
+        sleep(0.2)
 
-    if (vehicle.armed):
-        return True
-    else:
-        return False
-
-def px4_calc_location_lat_lon_meters(original_location, dNorth = 0, dEast = 0, alt = 0):
-    earth_radius = 6378137.0
-    dLat = dNorth/earth_radius
-    dLon = dEast/(earth_radius*cos(pi*original_location.lat/180))
-
-    new_lat = original_location.lat + (dLat * 180/pi)
-    new_lon = original_location.lon + (dLon * 180/pi)
-
-    return dronekit.LocationGlobal(new_lat, new_lon, original_location.alt + alt)
-
-def px4_control(vehicle, command, dNorth = 0, dEast = 0, alt = 0):
-    location = vehicle.location.global_reltive_frame
-    move = px4_calc_location_lat_lon_meters(location, dNorth, dEast, alt)
-    cmd = dronekit.Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
-                           command,
-                           0, 1, 0, 0, 0, 0, move.lat, move.lon, move.alt)
-    vehicle.commands.add(cmd)
-
-def to_quaternion(angles=[0,0,0]):
-    return [
-        cos(angles[0] / 2.) * cos(angles[1] / 2.) * cos(angles[2] / 2.) - sin(angles[0] / 2.) * sin(angles[1] / 2.) * sin(angles[2] / 2.),
-        cos(angles[0] / 2.) * cos(angles[1] / 2.) * sin(angles[2] / 2.) + sin(angles[0] / 2.) * sin(angles[1] / 2.) * cos(angles[2] / 2.),
-        sin(angles[0] / 2.) * cos(angles[1] / 2.) * cos(angles[2] / 2.) + cos(angles[0] / 2.) * sin(angles[1] / 2.) * sin(angles[2] / 2.),
-        cos(angles[0] / 2.) * sin(angles[1] / 2.) * cos(angles[2] / 2.) + sin(angles[0] / 2.) * cos(angles[1] / 2.) * sin(angles[2] / 2.)
-    ]
-
-def set_vehicle_attitude( vehicle, angles = [0, 0, 0], thrust = 0.5):
+def send_attitude(vehicle, angles = [0, 0, 0], thrust = 0.5):
+    #формирование сообщения для отправки на дрон
+    #angles: [0] - крен, [1] - тангаж, [2] - рысканье
     msg = vehicle.message_factory.set_attitude_target_encode(
-        0, #time_boot_ms
-        1, #target system
-        1, #target component
-        0b00000000,
-        to_quaternion( angles ), #quaternion
-        0, #body roll rate in radian
-        0, #body pitch rate in radian
-        0, #body aw rate n radian/second
-        thrust #thrust
+        0,  # time_boot_ms
+        1,  # Target system
+        1,  # Target component
+        0b00000100,
+        #roll, pitch, yaw
+        to_quaternion(angles),  # Quaternion
+        0,  # Body roll rate in radian
+        0,  # Body pitch rate in radian
+        0,  # Body yaw rate in radian/second
+        thrust  # Thrust
     )
     vehicle.send_mavlink(msg)
+
+def set_attitude(vehicle, angles = [0, 0, 0], thrust = 0.5):
+    #сама отправка сообщения
+    send_attitude(vehicle, angles=angles, thrust=thrust)
+    sleep(0.04)
+    #send_attitude(vehicle, angles=[0, 0, 0], thrust=thrust)
+
+def to_quaternion(angles = [0, 0, 0]):
+    #перевод уголов в кватернионы
+    t0 = cos(angles[2] * 0.5)
+    t1 = sin(angles[2] * 0.5)
+    t2 = cos(angles[0] * 0.5)
+    t3 = sin(angles[0] * 0.5)
+    t4 = cos(angles[1] * 0.5)
+    t5 = sin(angles[1] * 0.5)
+
+    w = t0 * t2 * t4 + t1 * t3 * t5
+    x = t0 * t3 * t4 - t1 * t2 * t5
+    y = t0 * t2 * t5 + t1 * t3 * t4
+    z = t1 * t2 * t4 - t0 * t3 * t5
+
+    return [w, x, y, z]
+
 
 if __name__ == '__main__':
     pass
