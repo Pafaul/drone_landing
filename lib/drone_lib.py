@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 from time import time, sleep
 from dronekit import connect, VehicleMode
+import dronekit
 from pymavlink import mavutil
 from math import cos, sin, pi
-#connect, arm_vehicle
 
 def connect(device, baud_rate):
     #установка соединения с дроном
     vehicle = None
     if (baud_rate == 0):
-        vehicle = connect(device, wait_ready=True)
+        vehicle = dronekit.connect(device, wait_ready = True)
     else:
-        vehicle = connect(device, baud=baud_rate, wait_ready=True)
+        vehicle = dronekit.connect(device, baud=baud_rate, wait_ready = True)
 
     return vehicle
 

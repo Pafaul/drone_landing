@@ -14,6 +14,11 @@ import physics_lib as pl
 phrases = dict()
 phrases['landing'] = 'landing'
 command_types = ['land', 'att']
+landing_flag = False
+prev_time = time()
+distance = 0
+x_dist = 0
+y_dist = 0
 
 def startup_drone(device, baud):
     vehicle = dl.connect(device, baud)
@@ -101,19 +106,23 @@ def main():
 
     img_shape = None
     run_flag = True
-    control_flag = False
+    global landing_flag
+    landing_flag = False
     vehicle_location = vehicle.location.global_relative_frame
     v_att = vehicle.attitude
     distance = 0;
     prev_time = time() - startup_time
 
-    while run_flag:
+    while not landing_flag:
+        cycle_time = time()
 
         if (vehicle.mode == vehicle_parameters['guided_mode']):
 
             control_flag = True
             print("Controlling drone")
             write_log(log, startup_time, "Controlling drone")
+            print("drone attitude: " + str(v_att))
+            write_log(log, startup_time, "drone attitude" + str(v_att))
             flag, img  = cap.read()
             orig_video.write(img)
             img_resolution = img.shape[1::-1]
@@ -138,28 +147,38 @@ def main():
 
                             print("Landing QR founded")
                             write_log(log, startup_time, "Landing QR founded")
-                            distance, angles = pl.calculate_dist_angles(vehicle.location.global_relative_frame.alt,
-                                                                        centers[qr_num],
-                                                                        camera_angle,
-                                                                        img_resolution,
-                                                                        distance,
-                                                                        time() - prev_time)
+                            global prev_time
+                            global distance
+                            global x_dist
+                            global y_dist
+                            x_dist, y_dist, angles = pl.calculate_dist_angles(vehicle.location.global_relative_frame.alt,
+                                                                            centers[qr_num],
+                                                                            camera_angle,
+                                                                            img_resolution,
+                                                                            x_dist,
+                                                                            y_dist,
+                                                                            time() - prev_time)
                             prev_time = time()
-                            print("Calculated distance: %f" % (distance))
-                            write_log(log, startup_time, "Calculated distance: %f" % (distance))
+                            distance = (float(x_dist)**2 + float(y_dist)**2)**0.5
+                            print("Calculated deltas: x = %.5f; y = %.5f" % (x_dist, y_dist))
+                            write_log(log, startup_time, "Calculated deltas: x = %.5f; y = %.5f" % (x_dist, y_dist))
+                            print("Calculated distance: %.5f" % (distance))
+                            write_log(log, startup_time, "Calculated distance: %.5f" % (distance))
 
                             if (distance < vehicle_parameters['landing_delta']):
                                 print("Landing can be performed")
                                 write_log(log, startup_time, "Landing can be performed")
                                 if (vehicle.mode != vehicle_parameters['land_mode']):
                                     vehicle.mode = vehicle_parameters['land_mode']
-                                while (vehicle.armed):
-                                    print("Waiting for landing")
-                                    write_log(log, startup_time, "Waiting for landing")
-                                    sleep(1)
+                                    global landing_flag
+                                    landing_flag = True
+
                             else:
+                                angles[0] = angles[0]
+                                angles[1] = angles[1]
+                                angles[2] = v_att.yaw
                                 print("Calculated angles: " + str(angles))
-                                write_log("Calculated andgles: " + str(angles))
+                                write_log(log, startup_time, "Calculated angles: " + str(angles))
                                 dl.set_attitude(vehicle, angles=angles)
 
                             break
@@ -180,13 +199,22 @@ def main():
                 print("Cannot get image. LANDING")
                 write_log(log, startup_time, "Cannot get image. LANDING")
                 vehicle.mode = vehicle_parameters['land_mode']
-                while (vehicle.armed):
-                    print("Waiting for landing")
-                    log.write("Waiting for landing")
-                    sleep(1)
+                global landing_flag
+                landing_flag = True
 
         else:
-            continue
+            print("NOT controlling drone")
+            write_log(log, startup_time, "NOT controlling drone")
+            flag, img  = cap.read()
+            orig_video.write(img)
+            result_video.write(img)
+
+        print("Cycle time: %.4f" % (time() - cycle_time))
+
+    while (vehicle.armed):
+        print("Waiting for landing")
+        write_log(log, startup_time, "Waiting for landing")
+        sleep(1)
 
     finish_all(cap, orig_video, result_video, vehicle, log)
 

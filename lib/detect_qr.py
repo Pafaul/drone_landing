@@ -69,7 +69,7 @@ def draw_qr_contour(img, centers, polygons, texts, test_qr_text):
 
 		for num in range(len(centers)):
 			cv2.circle(result_image, tuple(centers[num]), 5, color_red, -1)
-			text = str(texts[num][0]) + " ; location: %f , %f" % (centers[num][0], centers[num][1])
+			text = str(texts[num][0]) + " ; location: %d , %d" % (centers[num][0], centers[num][1])
 			print(text)
 			cv2.putText(result_image, text, tuple(texts[num][1:3]), font, 1, color_blue, 2, cv2.LINE_AA)
 			if (test_qr_text(texts[num][0])):
