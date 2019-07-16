@@ -104,6 +104,14 @@ def main():
         write_log(log, startup_time, "Cannot create video components. Exiting.")
         finish_all(cap, orig_video, result_video, vehicle, log)
 
+    print("Arming")
+    write_log(log, startup_time, "Arming")
+    dl.vehicle_arm(vehicle)
+
+    print("Taking off to 1m")
+    write_log(log, startup_time, "Taking off to 1m")
+    dl.take_off(vehicle, 1.3)
+
     img_shape = None
     run_flag = True
     global landing_flag
@@ -168,10 +176,10 @@ def main():
                             if (distance < vehicle_parameters['landing_delta']):
                                 print("Landing can be performed")
                                 write_log(log, startup_time, "Landing can be performed")
-                                if (vehicle.mode != vehicle_parameters['land_mode']):
-                                    vehicle.mode = vehicle_parameters['land_mode']
-                                    global landing_flag
-                                    landing_flag = True
+                                #if (vehicle.mode != vehicle_parameters['land_mode']):
+                                #    vehicle.mode = vehicle_parameters['land_mode']
+                                global landing_flag
+                                landing_flag = True
 
                             else:
                                 angles[0] = angles[0]
@@ -198,7 +206,7 @@ def main():
             else:
                 print("Cannot get image. LANDING")
                 write_log(log, startup_time, "Cannot get image. LANDING")
-                vehicle.mode = vehicle_parameters['land_mode']
+                #vehicle.mode = vehicle_parameters['land_mode']
                 global landing_flag
                 landing_flag = True
 
@@ -211,13 +219,20 @@ def main():
 
         print("Cycle time: %.4f" % (time() - cycle_time))
 
-    while (vehicle.armed):
+    if (landing_flag):
         print("Waiting for landing")
         write_log(log, startup_time, "Waiting for landing")
         flag, img = cap.read()
         orig_video.write(img)
         result_video.write(img)
-        sleep(1)
+        dl.landing(vehicle)
+    #while (vehicle.armed):
+    #    print("Waiting for landing")
+    #    write_log(log, startup_time, "Waiting for landing")
+    #    flag, img = cap.read()
+    #    orig_video.write(img)
+    #    result_video.write(img)
+    #    sleep(1)
 
     finish_all(cap, orig_video, result_video, vehicle, log)
 

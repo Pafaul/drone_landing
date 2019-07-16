@@ -30,12 +30,18 @@ def take_off(vehicle, alt):
     #взлёт на какую-либо высоту
     thrust = 0.6
     while (True):
-        cur_alt = vehicle.global_relative_frame.alt
+        cur_alt = vehicle.location.global_relative_frame.alt
         if (cur_alt >= alt):
             break
         else:
-            set_attitude(thrust=thrust)
+            set_attitude(vehicle, thrust=thrust)
         sleep(0.2)
+
+def landing(vehicle):
+    while (vehicle.location.global_relative_frame.alt > 0.5):
+        set_attitude(vehicle, thrust=0.35)
+        sleep(0.04)
+    vehicle.armed = False
 
 def send_attitude(vehicle, angles = [0, 0, 0], thrust = 0.5):
     #формирование сообщения для отправки на дрон
