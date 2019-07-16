@@ -78,7 +78,7 @@ def main():
     startup_time = time()
 
     vehicle_parameters = dict()
-    vehicle_parameters['guided_mode'] = dronekit.VehicleMode('GUIDED')
+    vehicle_parameters['guided_mode'] = dronekit.VehicleMode('GUIDED_NOGPS')
     vehicle_parameters['land_mode'] = dronekit.VehicleMode('LAND')
     vehicle_parameters['landing_delta'] = 0.5
 
@@ -214,6 +214,9 @@ def main():
     while (vehicle.armed):
         print("Waiting for landing")
         write_log(log, startup_time, "Waiting for landing")
+        flag, img = cap.read()
+        orig_video.write(img)
+        result_video.write(img)
         sleep(1)
 
     finish_all(cap, orig_video, result_video, vehicle, log)
